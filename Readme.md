@@ -35,6 +35,8 @@ Para este projeto, vamos utilizar o GitHub Actions.
 
 GitHub Actions é uma ferramenta de automação integrada ao GitHub que permite criar fluxos de trabalho (workflows) automatizados para diversas tarefas. Esses workflows podem ser configurados para serem acionados pelos principais eventos do GitHUb, como push de código, fechar uma pull request, criar uma issue, entre outros. É uma ferramenta bastante poderosa e que pode ser utilizada para diversos outras funções além da integração continua.
 
+Lembrando que o GitHub disponibiliza 2000 minutos (no momento da criação deste documento) de maquina por mes para repositório públicos. Logo é interessante não ficar rodando diversas actions quando não for necessario.
+
 ### O que é uma Actions
 
 É a ação que sera executada em um dos **Steps** de um **Job** em um **Workflow**, podendo ser criada do zero ou utilizada uma pre existente. Ela pode ser desenvolvida em **Javascript** ou **Docker image**.
@@ -79,3 +81,37 @@ Note que no steps temos o `uses` e o `run`, sendo que o primeiro executa uma Act
 ### Marketplace
 
 Dentro do [GitHub Marketplace](https://github.com/marketplace?type=actions) temos diversas Action ja prontas para serem executadas.
+
+## Criando uma Action
+
+Antes de trabalharmos com Actions e PRs, vamos criar um exemplo apenas para ver o funcionamento de uma action. Primeiramente adicionamos um programa muito simples em Go para efetuar uma soma de dois números, e então criamos um outro para testar essa função, e serão eles que iremos executar dentro o ubuntu na Action. Apos isso, na pasta `.github/workflows` vamos adicionar o arquivo `ci-test-go.yaml`.
+
+```yaml
+name: continuous-integration-go
+
+on: [push]
+jobs: 
+  check-application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - run: go test
+      - run: go run math.go
+```
+
+No arquivo acima definimos que sempre que houver um push, sera executado o job `check-application`, que por sua vez ira rodar uma maquina ubuntu. Dentro dessa maquina copiamos os código para dentro dela com o `checkout@v2`, e criamos um setup para o go com o `setup-go@v2` passando a versão 1.15. Por fim as ultimas duas linhas executam os testes em go.
+
+Com isso temos a Action configurada e sempre que houver um push ela sera executada, bastando ir na aba `Actions` do repositório para verificar todos os passos que foram executados.
+
+## Adicionando Status Check para as PRs
+
+Para que a verificação da Action tenha alguma validade precisamos aplica-la a uma PR, onde somente sera liberado o merge caso o status check tenha sido aprovado. Para fazer tal configuração vamos em `settings`, `branches` e `add rule`. As regras que vamos aplicar são:
+
+- `Require status checks to pass before merging` : isso garante que só sera possível efetuar um merge caso o status check for aprovado.
+  - `Require branches to be up to date before merging` : a branch precisa ser a mais atual para poder ser feito o merge.
+  - `Status checks that are required` : para esta opção vamos passar o nome do job que foi definido na Action, no caso o `check-application`. Caso o GitHub não sugerir ela, basta pesquisar no box de texto acima desta opção.
+
+Agora a Action precisa ser ativa apenas quando for criado uma nova PR, logo vamos modificar o arquivo yaml, ou criar um novo. Lembrando qu

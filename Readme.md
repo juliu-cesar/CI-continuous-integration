@@ -114,4 +114,56 @@ Para que a verificação da Action tenha alguma validade precisamos aplica-la a 
   - `Require branches to be up to date before merging` : a branch precisa ser a mais atual para poder ser feito o merge.
   - `Status checks that are required` : para esta opção vamos passar o nome do job que foi definido na Action, no caso o `check-application`. Caso o GitHub não sugerir ela, basta pesquisar no box de texto acima desta opção.
 
-Agora a Action precisa ser ativa apenas quando for criado uma nova PR, logo vamos modificar o arquivo yaml, ou criar um novo. Lembrando qu
+Agora a Action precisa ser ativa apenas quando for criado uma nova PR, logo vamos modificar o arquivo *yaml*, ou criar um novo.
+
+```yaml
+name: ci-prs
+
+on: 
+  pull_request:
+    branches: 
+      - develop
+
+jobs: 
+  check-application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - run: go test
+      - run: go run math.go
+```
+
+Alteramos o evento que ativa a action, porem anteriormente utilizamos o `[push]` para informar o tipo do evento, mas dessa vez passamos o evento como um campo, com isso podemos informar em qual branch esse evento sera ativo, que no caso é somente na `develop`.
+
+## Múltiplas ambientes com Strategy Matrix
+
+Outra parte importante sobre a fase de testes da Action, é que pode ser necessario testar o software em múltiplos ambientes e versões de uma mesma linguagem, e para essa tarefa temos o `Strategy` do Actions. Nele podemos passar uma matriz especificando as **versões** e até mesmo o **sistema** onde deve ser executado. Levando isso em consideração vamos modificar o arquivo *yaml* da seguinte forma:
+
+```yaml
+name: ci-multi-version
+
+on: 
+  pull_request:
+    branches: 
+      - develop
+
+jobs: 
+  check-application:
+    strategy:
+      matrix:
+        version: [1.14, 1.15]
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.version }}
+      - run: go test
+      - run: go run math.go
+```
+
+Dentro do Job criamos a estrategia `strategy` e passamos uma matriz `matrix`. Dentro dessa matriz poderíamos passar apenas as versões, ou apenas os sistemas operacionais, mas vamos utilizar os dois, dessa forma ao final sera executado 4 jobs. Para indicar a Action qual sistema utilizar, é preciso ir em `runs-on` e passar o campo da matriz responsável pelos sistemas, no caso `${{ matrix.os }}`. O mesmo vale para as versões `${{ matrix.version }}`.

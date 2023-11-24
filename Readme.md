@@ -44,11 +44,11 @@ GitHub Actions é uma ferramenta de automação integrada ao GitHub que permite 
 É um processo automatizado configurável composto por um ou mais jobs.
 
 - Workflow
-    - É um conjunto de processos definidos pelo usuário. Como por exemplo, radar os testes, efetuar o build, criar um artefato, etc.
-    - Pode haver mais de um workflow por repositório.
-    - Esse workflow é definidos em um arquivo `.yml` dentro da pasta `.github/workflows`.
-    - Possui um ou mais Jobs
-    - Pode ser iniciado por eventos do GitHub ou por agendamento.
+  - É um conjunto de processos definidos pelo usuário. Como por exemplo, radar os testes, efetuar o build, criar um artefato, etc.
+  - Pode haver mais de um workflow por repositório.
+  - Esse workflow é definidos em um arquivo `.yml` dentro da pasta `.github/workflows`.
+  - Possui um ou mais Jobs
+  - Pode ser iniciado por eventos do GitHub ou por agendamento.
 
 Suponhamos que o workflow foi definido e um evento ativou ele, como funciona esse fluxo:
 
@@ -64,8 +64,7 @@ name: fluxo n1
 
 on: 
   push:
-    branches: 
-      - main
+    branches: [ main ]
 jobs:
   build:
     runs-on: ubuntu

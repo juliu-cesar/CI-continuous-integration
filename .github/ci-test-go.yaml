@@ -1,10 +1,6 @@
 name: continuous-integration-go
 
-on: 
-  pull_request:
-    branches: 
-      - develop
-
+on: [push]
 jobs: 
   check-application:
     runs-on: ubuntu-latest

@@ -167,3 +167,100 @@ jobs:
 ```
 
 Dentro do Job criamos a estrategia `strategy` e passamos uma matriz `matrix`. Dentro dessa matriz poderíamos passar apenas as versões, ou apenas os sistemas operacionais, mas vamos utilizar os dois, dessa forma ao final sera executado 4 jobs. Para indicar a Action qual sistema utilizar, é preciso ir em `runs-on` e passar o campo da matriz responsável pelos sistemas, no caso `${{ matrix.os }}`. O mesmo vale para as versões `${{ matrix.version }}`.
+
+## CI com Docker
+
+Uma funcionalidade muito importante com as Actions, é que podemos construir imagens docker dentro dela. Onde setamos um ambiente que rode Docker e então efetuamos o build da imagem, e até mesmo o push para o Docker Hub. 
+
+Primeiramente vamos construir uma imagem docker do Go, onde ela apenas ira fazer o build do arquivo `math.go` e executar ele. Dentro da raiz do projeto vamos adicionar o `Dockerfile`:
+
+```dockerfile
+FROM golang:1.19
+
+WORKDIR /app
+
+COPY . .
+
+RUN go build -o math
+
+CMD [ "./math" ]
+```
+
+Dentro do Marketplace temos uma action pronta que faz o build e o push de imagens docker, [Build and push Docker images](https://github.com/marketplace/actions/build-and-push-docker-images). Na pagina da Action temos uma pequena documentação com alguns códigos de exemplos que vamos utilizar. No primeiro momento iremos **apenas efetuar o build** da imagem Docker.
+
+```yaml
+# Código omitido ...
+jobs: 
+  check-application-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - run: go test
+      - run: go run math.go
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          push: false
+          tags: juliucesar/ci-action-golang:latest
+```
+
+Começamos definindo um ambiente para rodar o Docker com a action **QEMU** que permite rodar o docker em diversas arquiteturas. Em seguida executamos outra action **Docker Buildx**, que permite executar o build da imagem nos passos seguintes. Por fim rodamos o build imagem, passando o nome da imagem como `ci-action-golang`, este sera o nome da imagem na maquina temporária da action, ela sera importante quando formos fazer o push da imagem.
+
+### Push da imagem
+
+Para efetuar o push no Docker Hub é preciso estar logado na maquina, e para isso vamos utilizar uma outra action que também consta na documentação vista no passo anterior.
+
+```yaml
+jobs: 
+  check-application-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - run: go test
+      - run: go run math.go
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: juliucesar/ci-action-golang:latest
+```
+
+Note que no campo de usuário e senha, utilizamos uma **secret** do github, e isso é necessario por questões de segurança, uma vez que quem obter essas informações terão acesso a canta do Docker. Vejamos os passos para configurar essas secrets:
+
+- Na aba `Settings` do repositório, vamos em `Secrets and variables`, `Actions` e por fim em `New repository secret`, 
+
+Nesta janela vamos configurar as duas variáveis, a primeira sendo a `DOCKERHUB_USERNAME` onde informaremos o usuário, e a segunda a `DOCKERHUB_TOKEN` onde informaremos o token do Docker. Para entender mais sobre o token de acesso e como cria-lo, temos a documentação do Docker [Create and manage access tokens](https://docs.docker.com/security/for-developers/access-tokens/). Mas para resumir como criar o token:
+
+- Efetue o login no Docker Hub, selecione o nome do usuário no canto superior direito e clique na opção `Account Settings`, depois em `Security` e por fim `New Access Token`.
+
+Apos essas configurações, sempre que for criada uma nova PR, sera feito o push de uma imagem docker para o Docker Hub. 
+
+Lembrando que este é apenas um exemplo, e podemos alterar o evento que ativa essa action, para por exemplo, somente fazer o push quando a for feito o merge na branch main.

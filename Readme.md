@@ -264,3 +264,57 @@ Nesta janela vamos configurar as duas variáveis, a primeira sendo a `DOCKERHUB_
 Apos essas configurações, sempre que for criada uma nova PR, sera feito o push de uma imagem docker para o Docker Hub. 
 
 Lembrando que este é apenas um exemplo, e podemos alterar o evento que ativa essa action, para por exemplo, somente fazer o push quando a for feito o merge na branch main.
+
+## SonarQube
+
+A proxima ferramenta que vamos trabalhar sera a [SonarQube](https://www.sonarsource.com/products/sonarqube/), que tem como a principal função avaliar a qualidade do código. Ela faz isso analisando todas as linhas de código do software para identificar problemas de segurança, bugs, vulnerabilidades, duplicações, cobertura de testes, entre outros aspectos, proporcionando uma visão detalhada sobre a saúde do código. Vejamos alguns pontos:
+
+- **Análise de Qualidade de Código** : o SonarQube avalia a qualidade do código-fonte, identificando problemas como complexidade, vulnerabilidades, duplicações, bugs, más práticas de codificação, entre outros.
+
+- **Feedback Rápido** : integra-se com pipelines de CI para fornecer feedback imediato aos desenvolvedores sobre a qualidade do código, permitindo a correção rápida de problemas.
+
+- **Padronização e Boas Práticas** : ajuda a aplicar padrões de codificação e boas práticas para garantir um código mais limpo, legível e sustentável.
+
+- **Melhoria Contínua** : facilita a identificação de áreas que precisam de melhorias, permitindo que a equipe foque em resolver problemas e aprimorar a qualidade do software.
+
+- **Integração com CI/CD** : ao se integrar com pipelines de Integração Contínua (CI), o SonarQube automatiza a análise do código, possibilitando a detecção precoce de problemas e garantindo que o código submetido esteja alinhado com os padrões de qualidade definidos.
+
+Outro ponto positivo é que os aspectos que definem o que é um código de qualidade são customizáveis, podendo ser alterar individualmente para cada projeto de acordo com a demanda.
+
+O SonarQube pode ser instalado localmente em uma máquina pessoal ou em um servidor dedicado, sendo distribuído como um servidor web que oferece uma interface de usuário para a configuração, execução e análise das verificações de código.
+
+### Rodando o SonarQube localmente
+
+Na [documentação](https://docs.sonarsource.com/sonarqube/latest/try-out-sonarqube/#installing-a-local-instance-of-sonarqube) temos uma imagem Docker para rodar o SonarQube localmente, sem a necessidade de instalar na maquina, com o ponto negativo de que sempre que o container for reiniciado, os dados das analises e os projetos cadastrados serão perdidos. Lembrando que esta imagem é apenas para testar o SonarQube, em produção utilizaremos outros métodos.
+
+```bash
+docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
+```
+
+Sera disponibilizado a porta 9000 para acessar o SonarQube, com o login e senha sendo `admin`.
+
+### Conceitos principais do SonarQube
+
+Ao abrir a plataforma, podemos notar algumas opções na barra de navegação, e posteriormente ao criar um projeto, algumas dessas opções serão repetidas, criando assim **configurações globais** e **configurações locais**, sendo as que vamos explorar a seguir da primeira opção.
+
+<img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/6eaf530e-af18-4f88-9e12-4c0a7b6b4abe" height="50" />
+
+As principais configurações que precisamos compreender são:
+
+- **Rules** : as regras são as diretrizes que definem os padrões de codificação, elas determinarão o que é certo e o que é errado. São categorizadas em severidade como **Hight** > **Medium** > **Low**, e em tipos como **Bug**, **Vulnerability**, **Code Smell** e **Security Hotspot**. Elas são aplicadas durante a análise estática e cada linguagem suportada pelo SonarQube possui um conjunto específico de regras, podendo ser ativadas, desativadas e personalizadas conforme necessário para se adequar ao contexto do projeto.
+
+<img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/e153f36c-49ca-4da5-b735-bf9f7859ac6c" height="70" />
+
+- **Quality Profiles** : os perfis de qualidade são conjuntos de regras configurados por linguagem de programação. Eles agrupam as regras que serão aplicadas durante a análise do código-fonte. O SonarQube vem com um perfil padrão para cada linguagem chamado de `Sonar way`, mas é possível criar perfis personalizados selecionando as regras desejadas, e controlando as métricas e o nível de rigor das verificações. Com isso atendendo melhor as necessidades específicas do projeto.
+
+<img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/7dd41502-abff-4514-b8ae-9a2d7f95058b" height="130" />
+
+- **Quality Gates** : os Quality Gates ou em tradução livre *portões de qualidade*, são um conjunto de condições que determinam se um projeto pode ser considerado aceitável ou não. Eles são usados para definir critérios de qualidade que devem ser atendidos antes de permitir a integração do código e caso não, o código pode ser bloqueado até que os problemas sejam resolvidos. Como mencionado acima, estamos analisando as configurações globais, porem podemos criar quality gates personalizado por projeto. Algumas das métricas utilizadas são: 
+  - Cobertura de testes
+  - Número de bugs críticos
+  - Vulnerabilidades 
+  - Linhas duplicadas
+  - Avaliação de manutenção
+  - Confiabilidade de código
+
+<img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/e1d94959-cae8-4f2e-b4a1-16c5f10a095f" height="300" />

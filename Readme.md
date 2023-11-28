@@ -253,15 +253,25 @@ jobs:
           tags: juliucesar/ci-action-golang:latest
 ```
 
-Note que no campo de usuário e senha, utilizamos uma **secret** do github, e isso é necessario por questões de segurança, uma vez que quem obter essas informações terão acesso a canta do Docker. Vejamos os passos para configurar essas secrets:
+#### Adicionando uma Secret no GitHub
+
+Note que no trecho de código acima temos o campo de usuário e senha utilizamos uma **secret** do github, e isso é necessario por questões de segurança, uma vez que quem obter essas informações terão acesso a conta do Docker. Vejamos os passos para configurar essas secrets:
 
 - Na aba `Settings` do repositório, vamos em `Secrets and variables`, `Actions` e por fim em `New repository secret`, 
 
-Nesta janela vamos configurar as duas variáveis, a primeira sendo a `DOCKERHUB_USERNAME` onde informaremos o usuário, e a segunda a `DOCKERHUB_TOKEN` onde informaremos o token do Docker. Para entender mais sobre o token de acesso e como cria-lo, temos a documentação do Docker [Create and manage access tokens](https://docs.docker.com/security/for-developers/access-tokens/). Mas para resumir como criar o token:
+Nesta janela vamos configurar as duas variáveis, a primeira sendo a `DOCKERHUB_USERNAME` onde informaremos o usuário, e a segunda a `DOCKERHUB_TOKEN` onde informaremos o token do Docker.
+
+#### Criando um token de acesso no Docker Hub
+
+Como visto acima, utilizamos um token de acesso do Docker Hub para fazer o login, e esse token pode ser obtido da seguinte forma:
 
 - Efetue o login no Docker Hub, selecione o nome do usuário no canto superior direito e clique na opção `Account Settings`, depois em `Security` e por fim `New Access Token`.
 
-Apos essas configurações, sempre que for criada uma nova PR, sera feito o push de uma imagem docker para o Docker Hub. 
+Para entender melhor sobre esse processo, segue a documentação do Docker [Create and manage access tokens](https://docs.docker.com/security/for-developers/access-tokens/). 
+
+___
+
+Apos todas essas configurações, sempre que for criada uma nova PR, sera feito o push de uma imagem docker para o Docker Hub. 
 
 Lembrando que este é apenas um exemplo, e podemos alterar o evento que ativa essa action, para por exemplo, somente fazer o push quando a for feito o merge na branch main.
 
@@ -413,6 +423,91 @@ sonar.javascript.lcov.reportPaths=coverage/lcov.info
 ```
 
 Agora é só rodar o comando `sonar-scanner` para analisar o projeto.
+
+## SonarCloud
+
+O SonarQube disponibiliza um serviço para rodar essa analise em uma plataforma na nuvem [SonarCloud](https://www.sonarsource.com/lp/products/sonarcloud/), evitando assim que seja necessario disponibilizar um servidor dedicado para isso processo. A maneira mais simples de adicionar um projeto ao SonarCloud é: 
+
+1. Criar uma conta na SonarCloud utilizando a conta do GitHub.
+2. Criar uma organização no SonarCloud.
+3. Disponibilizar o acesso ao repositório para a plataforma.
+4. Criar um projeto manualmente no SonarCloud. Para isso é preciso clicar em `Analyze new project` no canto superior direito e apos isso selecionar o repositório.
+
+O proximo passo é adicionar o SonarCloud ao GitHub Action. Dentro do projeto vamos em `Administration` e `Analysis Method`, nesta janela escolhemos a opção `With GitHub Actions`, onde sera aberto uma janela semelhante ao que configuramos no SonarQube anteriormente. Nela temos uma variável de ambiante que temos que adicionar para Action, no caso o token do projeto. No capitulo [adicionando uma secret no github](#adicionando-uma-secret-no-github) mostramos como executar esse processo. Em seguida escolhemos a linguagem utilizada, no caso a opção `Other`, onde sera exibido um trecho de código para colocarmos no arquivo `.yaml`, e as duas propriedades para o arquivo `sonar-project.properties`.
+
+```yaml
+name: Build
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+```
+
+```properties 
+sonar.projectKey=juliu-cesar_CI-continuous-integration
+sonar.organization=juliu-cesar
+```
+
+Utilizaremos apenas uma parte do código *yaml*, pois iremos executar outros processos antes do SonarCloud.
+
+### Criando um projeto Go com SonarCloud
+
+Vamos reaproveitar o projeto Go anterior, colocando ele na pasta `SonarQube/SonarCloud`, e na raiz do repositório vamos adicionar o arquivo `sonar-project.properties`, ficando da seguinte forma:
+
+```properties
+sonar.projectKey=juliu-cesar_CI-continuous-integration
+sonar.organization=juliu-cesar
+
+sonar.sources=SonarQube/SonarCloud
+sonar.tests=SonarQube/SonarCloud
+sonar.test.inclusions=**/*_test.go
+sonar.exclusions=**/*_test.go
+sonar.go.coverage.reportPaths=SonarQube/SonarCloud/coverage.out
+```
+
+Em seguida vamos adicionar a action `ci-sonarcloud-go.yaml`, ficando:
+
+```yaml
+name: ci-sonarcloud-go
+
+on: 
+  pull_request:
+    branches: 
+      - develop
+
+jobs: 
+  run-ci-sonarcloud:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: Set up directory
+        run: cd SonarQube/SonarCloud
+      - run: go test -coverprofile=coverage.out
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+```
 
 ## Instalando o Sonar Scanner
 

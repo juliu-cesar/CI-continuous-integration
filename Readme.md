@@ -375,6 +375,45 @@ No começo de arquivo temos as quatro configurações vistas anteriormente, pore
 
 Apos configurar o arquivo de propriedades, basta rodar o comando `sonar-scanner` na mesma pasta para executar a analise do código, com isso a informação de `Coverage` na plataforma deve ser atualizada. Porem mesmo que a cobertura esteja abaixo do padrão exigido pelo SonarQube, o programa provavelmente passou, isso acontece por que existem poucas linhas de códigos, então a analise não o bloqueia. Para testar o funcionamento completo da analise, vamos adicionar mais códigos ao arquivo `sum.go`, com isso a cobertura deve ficar ainda menor e o programa se barrado.
 
+### Criando um projeto nodejs com SonarQube
+
+Para termos de comparação vamos criar um projeto simples em nodejs na pasta `SonarQube/js`.
+
+```bash
+npm init -y
+
+npm install jest @types/jest sonar-scanner --only-dev
+```
+
+Dentro do arquivo `package.json` vamos substituir o script de teste para o Jest, e passar a opção para ele gerar um arquivo de cobertura.
+
+```json
+"scripts": {
+  "test": "jest --coverage"
+}
+```
+
+Apos isso basta adicionar os dois arquivos `sum.js` e `sum.test.js` na pasta `/src`, e rodar o comando `npm run test` para gerar o arquivo de saída. O Jest cria uma pasta chamada `coverage` onde podemos encontrar o arquivo `lcov.info`. 
+
+O proximo passo sera criar um projeto no SonarQube e configurar o arquivo `sonar-project.properties` com essas informações.
+
+```properties
+sonar.projectKey=ci-nodejs
+sonar.projectName=node-test
+sonar.sourceEncoding=UTF-8
+sonar.sources=src
+sonar.host.url=http://localhost:9000
+sonar.token=sqp_a4094521436d943102b02640889fe5f49a6e3932
+
+sonar.tests=src
+sonar.test.inclusions=**/*.test.js
+sonar.exclusions=**/*.test.ts
+sonar.javascript.coveragePlugin=lcov
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+```
+
+Agora é só rodar o comando `sonar-scanner` para analisar o projeto.
+
 ## Instalando o Sonar Scanner
 
 Abaixo temos o paço a paço para instalar o **sonar-scanner** no Ubuntu, mas para acessar a documentação original segue o [link](https://docs.sonarsource.com/sonarqube/10.3/analyzing-source-code/scanners/sonarscanner/).

@@ -1,0 +1,7 @@
+mode: set
+teste/SonarQube/sum.go:5.13,7.2 1 0
+teste/SonarQube/sum.go:9.28,11.2 1 1
+teste/SonarQube/sum.go:12.28,14.2 1 0
+teste/SonarQube/sum.go:15.30,17.2 1 0
+teste/SonarQube/sum.go:18.44,20.2 1 0
+teste/SonarQube/sum.go:21.36,23.2 1 0

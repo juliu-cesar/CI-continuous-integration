@@ -318,3 +318,87 @@ As principais configurações que precisamos compreender são:
   - Confiabilidade de código
 
 <img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/e1d94959-cae8-4f2e-b4a1-16c5f10a095f" height="300" />
+
+### Criando um projeto com SonarQube
+
+Para testar o SonarQube localmente vamos criar um projeto simples em Go na pasta `SonarQube/go`, onde nele adicionamos o arquivo principal e o de teste. Após isso é preciso criar um projeto na plataforma do SonarQube, então vamos navegar para a aba `Projects` e clicar em `Create a local project`. Neles vamos inserir um **nome** (ci-go-project), uma **key** (ci-go-project) e o nome da **branch principal** (develop). Na seção seguinte vamos utilizar as configurações globais e pronto, projeto criado.
+
+O proximo passo é criar o token para acessar esse projeto online, com o projeto selecionado vamos na aba `Projects` e clicamos na opção `Locally`, então escolhemos um **nome para o token** (ci-go-project-token) e o tempo para expirar a chave. Após isso escolhemos como vamos rodar a analise do projeto, onde o SonarQube ja possui integração com o `Maven`, `Gradle` e `.NET`, porem como estamos criando um projeto go vamos utilizar a opção `Other`, e em seguida o sistema operacional `Linux`. Para rodar a analise precisamos instalar o [sonar-scanner](#instalando-o-sonar-scanner) que sera responsável tanto pela analise como por enviar as informações para a plataforma onde esta o projeto online. Após escolher o sistema sera exibido um comando para rodar o scanner:
+
+```bash
+sonar-scanner \
+  -Dsonar.projectKey=ci-go-project \
+  -Dsonar.sources=. \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.token=sqp_71e7db520fb0f5c2692e875442df92c8ac8ee1c5
+```
+
+- projectKey : a key do projeto.
+- sources : o caminho onde estão os arquivos que serão analisados. Passamos apenas um `.` pois estamos considerando que o comando foi executado com o shell estando na pasta do projeto.
+- host.url : local onde se encontra a plataforma do SonarQube, por padrão ela é disponibilizada na porta 9000.
+- token : o token que acabamos de gerar.
+
+Ao executar o comando podemos notar que dentro do projeto é adicionado uma pasta chamada do scanner, e na plataforma do SonarQube indo em `Overview` agora temos algumas informações do projeto, e muito provavelmente ele passou no teste por possuir pouquíssimas linhas. Outro detalhe é que na aba `Code` podemos ver todo nosso código que foi enviado, e também as funções que foram cobertas com testes ou não.
+
+Apesar de funcionar com o comando acima, o mais indicado é criar um arquivo com as propriedades do projeto, o que ira facilitar até mesmo para informar o status de cobertura do código.
+
+### Cobertura de código com SonarQube
+
+Algo muito importante sobre o SonarQube é que ele não roda os testes para saber quais funções estão cobertas ou não, o que ele faz é pegar essas informações de um arquivo que deve ser disponibilizado e enviar para a plataforma. Cada linguagem possui uma forma ou formas para executar esse processo, sendo necessario procurar na [documentação](https://docs.sonarsource.com/sonarqube/9.9/analyzing-source-code/test-coverage/overview/) os tipos de arquivos aceitos. Para o projeto go temos o seguinte comando:
+
+```bash
+go test -coverprofile=coverage.out
+```
+
+Com a opção `coverprofile` o go ira criar um arquivo (coverage.out) com o resultado dos testes.
+
+Agora o proximo passo é criar o arquivo `sonar-project.properties`, onde iremos informar as propriedades necessários para o projeto, vejamos como configura-lo:
+
+```properties
+sonar.projectKey=ci-go-project
+sonar.sources=.
+sonar.host.url=http://localhost:9000
+sonar.token=sqp_9b9851ceba256bd6304d51766e274e0dd9eb5431
+
+sonar.tests=.
+sonar.test.inclusions=**/*_test.go
+sonar.exclusions=**/*_test.go
+sonar.go.coverage.reportPaths=coverage.out
+```
+
+No começo de arquivo temos as quatro configurações vistas anteriormente, porem ao final do arquivo temos outras quatro:
+
+- tests : a pasta onde se encontra os testes, e assim como em *sources* eles estão na mesma pasta onde se encontra o arquivo.
+- test.inclusions : quais os arquivos responsáveis pelos testes, no caso todos que terminem com "_test.go".
+- exclusions : quais os arquivos que dever ser excluídos de cobertura, no caso todos os arquivos de teste.
+- go.coverage.reportPaths : a localização do arquivo com o resultado da cobertura de testes, como estão na mesma pasta informamos apenas o nome.
+
+Apos configurar o arquivo de propriedades, basta rodar o comando `sonar-scanner` na mesma pasta para executar a analise do código, com isso a informação de `Coverage` na plataforma deve ser atualizada. Porem mesmo que a cobertura esteja abaixo do padrão exigido pelo SonarQube, o programa provavelmente passou, isso acontece por que existem poucas linhas de códigos, então a analise não o bloqueia. Para testar o funcionamento completo da analise, vamos adicionar mais códigos ao arquivo `sum.go`, com isso a cobertura deve ficar ainda menor e o programa se barrado.
+
+## Instalando o Sonar Scanner
+
+Abaixo temos o paço a paço para instalar o **sonar-scanner** no Ubuntu, mas para acessar a documentação original segue o [link](https://docs.sonarsource.com/sonarqube/10.3/analyzing-source-code/scanners/sonarscanner/).
+
+1. Instalar os pacotes `wget`, `unzip` e `nodejs`
+
+```bash
+apt-get update
+apt-get install unzip wget nodejs
+```
+
+2. Baixar e extrair o software
+
+```bash
+wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+mv sonar-scanner-cli-5.0.1.3006-linux.zip /opt/sonar-scanner
+```
+
+> O link pode ser obtido no site do paragrafo acima, passando o mouse sobre a opção `Linux 64-bit`.
+
+3. Exportar a variável PATH no arquivo do shell (.bash, .zshrc, etc)
+
+```bash
+export PATH="$PATH:/opt/sonar-scanner/bin"
+```
+

@@ -473,8 +473,8 @@ Vamos reaproveitar o projeto Go anterior, colocando ele na pasta `SonarQube/Sona
 sonar.projectKey=juliu-cesar_CI-continuous-integration
 sonar.organization=juliu-cesar
 
-sonar.sources=SonarQube/SonarCloud/*
-sonar.tests=SonarQube/SonarCloud/*
+sonar.sources=SonarQube/SonarCloud
+sonar.tests=SonarQube/SonarCloud
 sonar.test.inclusions=**/*_test.go
 sonar.exclusions=**/*_test.go
 sonar.go.coverage.reportPaths=SonarQube/SonarCloud/coverage.out

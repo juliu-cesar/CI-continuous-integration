@@ -15,7 +15,9 @@ jobs:
           go-version: 1.15
       - name: Set up directory
         run: cd SonarQube/SonarCloud
+      - run: go test -json > report.json
       - run: go test -coverprofile=coverage.out
+      
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master

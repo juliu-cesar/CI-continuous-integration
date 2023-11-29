@@ -465,6 +465,12 @@ sonar.organization=juliu-cesar
 
 Utilizaremos apenas uma parte do código *yaml*, pois iremos executar outros processos antes do SonarCloud.
 
+### Desabilitando o Automatic Analysis
+
+Um detalhe importante quando se vai executar manualmente a analise, como no projeto a seguir, é que precisamos desligar o `Automatic Analysis` no painel do SonarCloud. Indo em `Administration` e `Analysis Method` sera exibido o botão para desabilitar essa função.
+
+<img src="https://github.com/juliu-cesar/CI-continuous-integration/assets/121033909/fd32cca2-ddb7-4504-86b5-467fe8dc5310" height="90" />
+
 ### Criando um projeto Go com SonarCloud
 
 Vamos reaproveitar o projeto Go anterior, colocando ele na pasta `SonarQube/SonarCloud`, e na raiz do repositório vamos adicionar o arquivo `sonar-project.properties`, ficando da seguinte forma:
@@ -475,7 +481,7 @@ sonar.organization=juliu-cesar
 
 sonar.sources=SonarQube/SonarCloud
 sonar.tests=SonarQube/SonarCloud
-sonar.test.inclusions=**/*_test.go
+sonar.test.inclusions=SonarQube/SonarCloud/*_test.go
 sonar.exclusions=**/*_test.go
 sonar.go.coverage.reportPaths=SonarQube/SonarCloud/coverage.out
 ```
@@ -498,16 +504,17 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.15
-      - name: Set up directory
-        run: cd SonarQube/SonarCloud
-      - run: go test -coverprofile=coverage.out
-
+      - name: Set up directory and run test
+        run: cd SonarQube/SonarCloud && go test -coverprofile=coverage.out
+        
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 ```
+
+Note que ao executar o comando `cd SonarQube/SonarCloud && go test -coverprofile=coverage.out`, mudamos de pasta e executamos o teste no mesmo `run`. Isso acontece por que a cada novo *run* a workdir volta para a pasta raiz, dessa forma sempre que for necessario executar um comando em outra pasta, precisamos fazer o mesmo processo acima.
 
 ## Instalando o Sonar Scanner
 

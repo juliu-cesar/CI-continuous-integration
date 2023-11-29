@@ -16,8 +16,10 @@ jobs:
       - name: Set up directory
         run: cd SonarQube/SonarCloud
       # - run: gometalinter ./... > gometalinter-report.out
-      - run: go test -json > report.json
+      # - run: go test -json > report.json
       - run: go test -coverprofile=coverage.out
+      - run: ls
+      - run: pwd
       
 
       - name: SonarCloud Scan
